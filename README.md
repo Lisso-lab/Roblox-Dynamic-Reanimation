@@ -1,4 +1,4 @@
-# Roblox-Dynamic-Reanimation
+# Roblox dynamic reanimation
 Roblox reanimation bypass with dynamic velocity
 
 # What is Dynamic velocity?
