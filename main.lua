@@ -185,6 +185,7 @@ local function reset_func()
     char:BreakJoints()
 
     bindable_event:Destroy()
+    _char:Destroy()
 
     print('Disconnected: ' ..tostring(#connected_loops) ..' loops.')
 
