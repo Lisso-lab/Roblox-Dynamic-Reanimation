@@ -1,4 +1,4 @@
-local run_service,plrs = game:GetService('RunService'),game:GetService('Players')
+local run_service = game:GetService('RunService')
 
 local plr = game:GetService('Players').LocalPlayer
 local char, _char = plr.Character or workspace[plr.Name]
