@@ -83,7 +83,7 @@ local function stabilize(part, part_to, cframe)
 
         part.CFrame = cframe and part_to.CFrame * cframe or part_to.CFrame
 
-        local velocity do 
+        local velocity,rot_vel do 
             local st_vel = settings['St Velocity']
             local jump_vel do
                 if settings['Jump Velocity'] then
@@ -105,16 +105,14 @@ local function stabilize(part, part_to, cframe)
             else
                 velocity = movedir_calculation(_hum.MoveDirection) + Vector3.new(0,15,0)
             end
-        end
-
-        local rot_vel do
+            
             if settings["Apply RotVelocity"] then
                 rot_vel = rotvel_calculation(part_to.RotVelocity)
             else
                 rotvel = Vector3.zero
             end
         end
-        
+
         part:ApplyAngularImpulse(velocity)
         part.RotVelocity = rot_vel
 
