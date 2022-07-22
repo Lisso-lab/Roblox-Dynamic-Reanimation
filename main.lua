@@ -294,7 +294,12 @@ end
 for _,v in pairs(hum:GetPlayingAnimationTracks()) do
     v:Stop()
 end
-char.Animate.Disabled = true
+
+do
+    local animate = char:FindFirstChild("Animate")
+
+    if animate then animate.Disabled = true end
+end
 --Disabled Animate LocalScript and disables animations real character is playing.
 
 for _,accessory in pairs(_hum:GetAccessories()) do
