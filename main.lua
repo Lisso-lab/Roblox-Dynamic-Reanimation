@@ -1,4 +1,4 @@
-local run_service = game:GetService('RunService')
+local run_service,plrs = game:GetService('RunService'),game:GetService('Players')
 
 local plr = game:GetService('Players').LocalPlayer
 local char, _char = plr.Character or workspace[plr.Name]
@@ -24,7 +24,7 @@ local settings = {
     ['Jump Velocity'] = true, --Jump Velocity: Adds jumping velocity to Velocity. Recommended
     ['Dummy Noclip'] = true, --Dummy Noclip: makes you noclipped WHILE being reanimated.
     ['St Velocity'] = Vector3.new(100,100,100), --Stationary Velocity: Velocity when no movement.
-    ['Dv Amplifier'] = 50, --Dynamic Velocity amplifier: multiplies dynamic velocity. ? Minimum? To test!
+    ['Dv Amplifier'] = 15, --Dynamic Velocity amplifier: multiplies dynamic velocity. ? Minimum? To test!
     ['Rv Amplifier'] = 3 --RotVelocity Amplifier: multiplies Rotational Velocity. Small number recommended!
 }
 
@@ -107,14 +107,19 @@ local function stabilize(part, part_to, cframe)
             end
         end
 
+        local rot_vel do
+            if settings["Apply RotVelocity"] then
+                rot_vel = rotvel_calculation(part_to.RotVelocity)
+            else
+                rotvel = Vector3.zero
+            end
+        end
+        
+        part:ApplyAngularImpulse(velocity)
+        part.RotVelocity = rot_vel
+
         part:ApplyImpulse(velocity)
         part.AssemblyLinearVelocity = velocity
-
-        if settings['Apply RotVelocity'] then
-            part.RotVelocity = rotvel_calculation(part_to.RotVelocity)
-        else
-            part.RotVelocity = Vector3.zero
-        end
     end)
     --[[Heartbeat loop is used because it runs right after physics. 
         Therefore any set velocity by game gets immediately replaced.
@@ -291,11 +296,7 @@ end
 for _,v in pairs(hum:GetPlayingAnimationTracks()) do
     v:Stop()
 end
-do
-    local animate = char:FindFirstChild('Animate')
-    if animate then animate.Disabled = true end
-end
-
+char.Animate.Disabled = true
 --Disabled Animate LocalScript and disables animations real character is playing.
 
 for _,accessory in pairs(_hum:GetAccessories()) do
