@@ -113,7 +113,7 @@ local function stabilize(part, part_to, cframe)
             end
         end
 
-        part:ApplyAngularImpulse(velocity)
+        part:ApplyAngularImpulse(rot_vel)
         part.RotVelocity = rot_vel
 
         part:ApplyImpulse(velocity)
