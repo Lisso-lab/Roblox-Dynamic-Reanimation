@@ -6,6 +6,7 @@ local plr: Player = game:GetService("Players").LocalPlayer
 local char, _char: Model = plr.Character or workspace[plr.Name]
 local hum, _hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
 local bindable_event: BindableEvent --Used for hooking reset button.
+local debounce_tick: number = 0
 --Making locals _char and _hum here so that they can be used in any local function.
 
 local connected_loops = {} --RunService connections.
@@ -25,9 +26,10 @@ local settings = {
     ]]
     ["Jump Velocity"] = true, --Jump Velocity: Adds jumping velocity to Velocity. Recommended
     ["Dummy Noclip"] = true, --Dummy Noclip: makes you noclipped WHILE being reanimated.
-    ["St Velocity"] = Vector3.new(100,100,100), --Stationary Velocity: Velocity when no movement.
-    ["Dv Amplifier"] = 15, --Dynamic Velocity amplifier: multiplies dynamic velocity. ? Minimum? To test!
-    ["Rv Amplifier"] = 3 --RotVelocity Amplifier: multiplies Rotational Velocity. Small number recommended!
+    ["St Velocity"] = Vector3.new(10000,10000,10000), --Stationary Velocity: Velocity when no movement.
+    ["Dv Amplifier"] = 50, --Dynamic Velocity amplifier: multiplies dynamic velocity. ? Minimum?
+    ["Dv Debounce"] = .05, --Dynamic Velocity Debounce. Does dynamic velocity overtime until Tick() - Debounce > this.
+    ["Rv Amplifier"] = 5 --RotVelocity Amplifier: multiplies Rotational Velocity
 }
 
 --[[
@@ -36,7 +38,7 @@ Functions start.
 --]]
 
 local function movedir_calculation(move_direction): Vector3
-    if not ((move_direction * settings["Dv Amplifier"]).Magnitude > 30) then
+    if not ((move_direction * settings["Dv Amplifier"]).Magnitude > 35) then
         --[[If multiplied MoveDirection doesn't reach minimal velocity which
             can maintain parts and hats, this check passes. (26 is absolute minimum but thats too much)
         ]]
@@ -99,13 +101,22 @@ local function stabilize(part, part_to, cframe)
             --This is done just in case Dummy looses HumanoidRootPart by any way.
 
             if _hum.MoveDirection.Magnitude == 0 or not settings["Dynamic Velocity"] then
-                velocity = Vector3.new(
-                    st_vel.X,
-                    st_vel.Y + (jump_vel and  _char:FindFirstChild("HumanoidRootPart").Velocity.Y or 0),
-                    st_vel.Z
-                )
+                if debounce_tick and tick() - debounce_tick < settings["Dv Debounce"] then
+                    --[[Checks if current tick is higher than debounce tick by Dv Debounce.
+                        If it is then it does dynamic velocity
+                    ]]
+                    velocity = movedir_calculation(_hum.MoveDirection) + settings["St Velocity"]
+                else
+                    velocity = Vector3.new(
+                        st_vel.X,
+                        st_vel.Y + (jump_vel and  _char:FindFirstChild("HumanoidRootPart").Velocity.Y or 0),
+                        st_vel.Z
+                    )
+                end
             else
-                velocity = movedir_calculation(_hum.MoveDirection) + Vector3.new(0,15,0)
+                debounce_tick = tick()
+
+                velocity = movedir_calculation(_hum.MoveDirection) + settings["St Velocity"]/2
             end
 
             if settings["Apply RotVelocity"] then
@@ -204,7 +215,6 @@ end
 local legacy_net do
     if settings["Legacy Net"] then
         setscriptable(plr, "SimulationRadius", true)
-        setscriptable(plr, "MaximumSimulationRadius", true)
         --Why use sethiddenproperties when you can use setscriptable? Aha!
 
         function legacy_net()
