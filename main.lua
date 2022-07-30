@@ -6,7 +6,7 @@ local plr: Player = game:GetService("Players").LocalPlayer
 local char, _char: Model = plr.Character or workspace[plr.Name]
 local hum, _hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
 local bindable_event: BindableEvent --Used for hooking reset button.
-local debounce_tick: number = 0
+local debounce_tick: number = 0 --Used for debouncing dynamic velocity.
 --Making locals _char and _hum here so that they can be used in any local function.
 
 local connected_loops = {} --RunService connections.
