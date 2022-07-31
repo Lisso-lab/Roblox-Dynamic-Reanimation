@@ -26,9 +26,9 @@ local settings = {
     ]]
     ["Jump Velocity"] = true, --Jump Velocity: Adds jumping velocity to Velocity. Recommended
     ["Dummy Noclip"] = true, --Dummy Noclip: makes you noclipped WHILE being reanimated.
-    ["St Velocity"] = Vector3.new(10000,10000,10000), --Stationary Velocity: Velocity when no movement.
+    ["St Velocity"] = Vector3.new(0,50,0), --Stationary Velocity: Velocity when no movement.
     ["Dv Amplifier"] = 50, --Dynamic Velocity amplifier: multiplies dynamic velocity. ? Minimum?
-    ["Dv Debounce"] = .05, --Dynamic Velocity Debounce. Does dynamic velocity overtime until Tick() - Debounce > this.
+    ["Dv Debounce"] = .05, --Dynamic Velocity Debounce. Does dynamic velocity overtime until (Tick() - Debounce) > this.
     ["Rv Amplifier"] = 5 --RotVelocity Amplifier: multiplies Rotational Velocity
 }
 
