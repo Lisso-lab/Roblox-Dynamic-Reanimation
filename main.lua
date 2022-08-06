@@ -6,7 +6,7 @@ local plr: Player = game:GetService("Players").LocalPlayer
 local char, _char: Model = plr.Character or workspace[plr.Name]
 local hum, _hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
 local bindable_event: BindableEvent --Used for hooking reset button.
-local debounce_tick: number = 0 --Used for debouncing dynamic velocity.
+local debounce_tick: number = 0
 --Making locals _char and _hum here so that they can be used in any local function.
 
 local connected_loops = {} --RunService connections.
@@ -27,8 +27,8 @@ local settings = {
     ["Jump Velocity"] = true, --Jump Velocity: Adds jumping velocity to Velocity. Recommended
     ["Dummy Noclip"] = true, --Dummy Noclip: makes you noclipped WHILE being reanimated.
     ["St Velocity"] = Vector3.new(0,50,0), --Stationary Velocity: Velocity when no movement.
-    ["Dv Amplifier"] = 50, --Dynamic Velocity amplifier: multiplies dynamic velocity. ? Minimum?
-    ["Dv Debounce"] = .05, --Dynamic Velocity Debounce. Does dynamic velocity overtime until (Tick() - Debounce) > this.
+    ["Dv Amplifier"] = 50, --Dynamic Velocity amplifier: multiplies dynamic velocity. ?
+    ["Dv Debounce"] = .05, --Dynamic Velocity Debounce. Does dynamic velocity overtime until Tick() - Debounce > this.
     ["Rv Amplifier"] = 5 --RotVelocity Amplifier: multiplies Rotational Velocity
 }
 
@@ -52,7 +52,7 @@ local function movedir_calculation(move_direction): Vector3
             settings["Dv Amplifier"] += 4
 
             if (move_direction * settings["Dv Amplifier"]).Magnitude > 30 then
-                warn("Dv Amplifier wasnt set high enough to maitain parts. Dv Amplifier was set to: ", settings["Dv Amplifier"])
+                print("Dv Amplifier wasnt set high enough to maitain parts. Dv Amplifier was set to: ", settings["Dv Amplifier"])
 
                 break
             end
@@ -74,17 +74,13 @@ end
 local function stabilize(part, part_to, cframe)
     connected_loops[#connected_loops + 1] =
     run_service["RenderStepped"]:Connect(function()
-        part.CFrame = part_to.CFrame
-
-        part.CFrame = cframe and part_to.CFrame * cframe or part_to.CFrame
+        part.CFrame = cframe and (part_to.CFrame * cframe) or part_to.CFrame
         --This is tenary. If you don't know tenary, you should check tenary out ^^.
     end)
     --Using RenderStepped because it is rendered before camera. Which is what we want.
 
     connected_loops[#connected_loops + 1] =
     run_service["Heartbeat"]:Connect(function()
-        part.CFrame = part_to.CFrame
-
         part.CFrame = cframe and part_to.CFrame * cframe or part_to.CFrame
 
         local velocity,rot_vel: Vector3 do 
@@ -142,6 +138,7 @@ end
 local function part_tweaks(part)
     part.CanTouch = false --Cannot fire .Touched
     part.CanQuery = false --Cannot be RayCasted
+
     part.RootPriority = 127
 
     part.CustomPhysicalProperties = PhysicalProperties.new(
@@ -161,7 +158,7 @@ local function part_tweaks(part)
 end
 
 local function collision()
-        for _,v in pairs(char:GetChildren()) do
+    for _,v in pairs(char:GetChildren()) do
         if not v:IsA("BasePart") then continue end
 
         v.CanCollide = false
@@ -205,7 +202,6 @@ local function reset_func()
     game:GetService("StarterGui"):SetCore("ResetButtonCallback", true)
     --this sets button so that we can reset normally.
 
-    wait(1)
     reset_func_disconnecting = false
     --We must make sure that .CharacterRemoving stops sending death threats.
 
@@ -271,7 +267,7 @@ do
 
     for _,v in pairs(hum:GetAccessories()) do
         if hat_names[v.Name] then
-            hat_names[v.Name][#hat_names[v.Name] + 1] = v
+            hat_names[v.Name][#hat_names[v.Name] + 1] = true
             --Adds 1 to table UNDER hat_names that is called the hat name.
 
             v.Name = v.Name .. #hat_names[v.Name]
@@ -315,28 +311,28 @@ end
 for _,accessory in pairs(_hum:GetAccessories()) do
     local real_accessory: Accessory = char:FindFirstChild(accessory.Name)
 
-    if not real_accessory then accessory:Destroy() end
+    if not real_accessory then accessory:Destroy(); continue end
 
     local handle: BasePart = accessory:FindFirstChildWhichIsA("BasePart")
     local real_handle: BasePart = real_accessory:FindFirstChildWhichIsA("BasePart")
 
-    if not handle or not real_handle then continue end
+    if not (handle and real_handle) then accessory:Destroy(); continue end
 
     handle.Transparency = 1
 
     local accessory_weld: Weld = real_handle:FindFirstChildWhichIsA("Weld")
 
-    if not accessory_weld then continue end
-    
+    if accessory_weld then
+        accessory_weld:Destroy()
+    end
+
     accessory_weld:Destroy()
 
     stabilize(real_handle,handle)
 
     local special_mesh: SpecialMesh = handle:FindFirstChildWhichIsA("SpecialMesh")
 
-    if not special_mesh then continue end
-
-    special_mesh:Destroy()
+    if special_mesh then special_mesh:Destroy() end
     --I just really wanna make sure that nothing errors.
 end
 --Done to hide meshses.
@@ -347,7 +343,7 @@ for _,v in pairs(_char:GetChildren()) do
     end
     --Sometimes forcefield stays in character, and then is copied to Dummy.
 
-    if not v:IsA("BasePart") or not char:FindFirstChild(v.Name) then continue end
+    if not (v:IsA("BasePart") and char:FindFirstChild(v.Name)) then continue end
 
     local real_part: BasePart = char[v.Name]
 
@@ -400,6 +396,9 @@ Connections Start.
 
 game:GetService("StarterGui"):SetCore("ResetButtonCallback", bindable_event)
 
+if settings["Legacy Net"] then 
+    connected_loops[#connected_loops + 1] = run_service["Heartbeat"]:Connect(legacy_net)
+end
+
 connected_loops[#connected_loops + 1] = plr.CharacterRemoving:Connect(reset_func)
 connected_loops[#connected_loops + 1] = run_service["Stepped"]:Connect(collision)
-connected_loops[#connected_loops + 1] = run_service["Heartbeat"]:Connect(legacy_net)
