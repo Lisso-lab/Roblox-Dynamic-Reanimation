@@ -7,18 +7,30 @@ Dynamic velocity uses MoveDirection, which is then used to calculate direction t
 velocity in.
 
 # Why Dynamic velocity?
-Lets say for example you use velocity of: Vector3.n(100,100,100), This velocity is fine and won't jitter... That is if you dont move of course.
-When you move your character, your physics get calculated in a way which makes you glitch
-any time you move. Dynamic velocity fixes that. Dynamic velocity applies velocity in
-direction player moves and it gives no space for jitter.
+When character moves velocity gets applied in direction which player moves in, which in return
+minigates most of jittering.
+
+# If you are new to reanimations
+Reanimation works as follows: Character gets cloned into local side, motors in real character get removed,
+therefore every limb in character can fall. All of these limbs get stabilized to limbs in fake character
+and then player's character gets set to fake character.
+Velocity gets applied in studs. When you do for example Vector3.new(0,60,0), part moved 60 studs
+every physics iteration.
+Older, now patched way of doing reanimation didn't need any velocity applied. There are still benefits
+of using older method, it is just capped and not as power as it was.
 
 # Motivation
-Exploiting on roblox has been on roblox for decade and people are still exploiting.
-By increasing numbers of daily players on Roblox, alot more people MIGHT want to get
-into exploiting.
-The issue is that there arent any valid tutorials on exploiting exactly(that I know of).
-This code is released publicly exactly for that reason: Learn & Code.
+This should be used as learning material. Most if not all reanimations that are public are either:
+1. obfuscated
+2. old
+3. badly coded
+There isn't any good way of getting into exploiting. The way I(and alot of exploiters) learned
+how to exploit was by reading other peoples code, analyzing what it does. Therefore, this exists.
 
 # Note
+This reanimaton was made in a way where it should possibly work in most games, therefore
+very specific things like "r15 to r6" won't be added. It is meant to be very versitale.
+This reanimation has alot of options(even the option to disable dynamic velocity).
+This reanimation doesn't fall under any license, therefore you can use it however you want.
 the coding style is snakecase, and if you might send commits, then code it in snakecase.
 Much obliged.
