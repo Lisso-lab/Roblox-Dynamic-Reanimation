@@ -24,6 +24,7 @@ This should be used as learning material. Most if not all reanimations that are 
 1. obfuscated
 2. old
 3. badly coded
+
 There isn't any good way of getting into exploiting. The way I(and alot of exploiters) learned
 how to exploit was by reading other peoples code, analyzing what it does. Therefore, this exists.
 
