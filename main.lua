@@ -53,9 +53,46 @@ local function reset_func()
     _char:BreakJoints()
 
     bindable_event:Destroy()
-    _char:Destroy()
 
     starter_gui:SetCore("ResetButtonCallback", true)
+end
+
+local function process_pats(inst) --BasePart | Accessory doesnt work smh
+    local real_inst = char[inst.Name] --BasePart | Accessory doesnt work smh
+
+    if inst:IsA("Accessory") then
+        inst = inst:FindFirstChildWhichIsA("BasePart")
+        real_inst = real_inst:FindFirstChildWhichIsA("BasePart")
+    end
+
+    for _, desc in pairs(real_inst:GetChildren()) do
+        if desc:IsA("Motor6D") and desc.Name ~= "Neck" or desc:IsA("Weld") then desc:Destroy() end
+    end
+
+    for _, desc in pairs(inst:GetChildren()) do
+        if desc:IsA("Texture") or desc:IsA("Decal") then desc.Transparency = 1 end
+    end
+
+    inst.Transparency = 1
+
+    print(inst)
+
+    net_functions.part_tweaks(real_inst)
+
+    rs_connections[#rs_connections+1],rs_connections[#rs_connections+2] =
+    net_functions.stabilize(
+        real_inst,
+        inst,
+        _hum,
+        {
+            st_vel = settings["St Velocity"],
+            dv_debounde = settings["Dv Debounce"],
+            dv_amplifier = settings["Dv Amplifier"],
+            rv_amplifier = settings["Rv Amplifier"],
+            dynamic_vel = settings["Dynamic Velocity"],
+            calc_rotvel = settings["Calculate RotVelocity"]
+        }
+    )
 end
 
 --Functions done.
@@ -63,28 +100,27 @@ end
 
 if settings["Physics Tweaks"] then net_functions.physics_tweaks(hum) end
 
-do local hat_names = {}
-
-    for _,v in pairs(hum:GetAccessories()) do
-        if hat_names[v.Name] then
-            hat_names[v.Name][#hat_names[v.Name] + 1] = true
-
-            v.Name = v.Name .. #hat_names[v.Name]
-        else
-            hat_names[v.Name] = {}
-        end
-    end
-end --hat renaming function in lua numbers. <hat, hat1, hat2>
-
 char.Archivable = true --Character can"t be cloned otherwise.
 
 for _, inst in pairs(char:GetDescendants()) do
-    if inst:IsA("Shirt") or inst:IsA("Pants") or
-        inst:IsA("SpecialMesh") or inst:IsA("ForceField")
-    then
+    if inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("CharacterMesh") or
+       inst:IsA("SpecialMesh") or inst:IsA("ForceField") then
         inst.Archivable = false
     end
 end
+
+do local hat_names = {}
+
+    for _,accessory in pairs(hum:GetAccessories()) do
+        if hat_names[accessory.Name] then
+            hat_names[accessory.Name][#hat_names[accessory.Name] + 1] = true
+
+            accessory.Name = accessory.Name .. #hat_names[accessory.Name]
+        else
+            hat_names[accessory.Name] = {}
+        end
+    end
+end --hat renaming function in lua numbers. <hat, hat1, hat2>
 
 _char = char:Clone() --Clones real character, and makes Dummy.
 _char:MoveTo(char:FindFirstChildWhichIsA("BasePart").Position)
@@ -92,7 +128,9 @@ _char.Parent = workspace
 
 _hum = _char:FindFirstChildWhichIsA("Humanoid")
 
-net_functions.set_hum_state(hum) --Disabled any other humanoid state, and only keeps Physical state.(It is used for limbs collision)
+for _, inst in pairs(_char:GetChildren()) do
+    if inst:IsA("BasePart") or inst:IsA("Accessory") then process_pats(inst) end
+end
 
 for _,animation_track in pairs(hum:GetPlayingAnimationTracks()) do
     animation_track:Stop()
@@ -102,74 +140,7 @@ do local animate: LocalScript = char:FindFirstChild("Animate")
     if animate and animate:IsA("LocalScript") then animate.Disabled = true end
 end --Disabled Animate LocalScript and disables animations real character is playing.
 
-for _,accessory in pairs(_hum:GetAccessories()) do
-    local real_accessory: Accessory = char[accessory.Name]
-
-    local handle: BasePart = accessory:FindFirstChildWhichIsA("BasePart")
-    local real_handle: BasePart = real_accessory:FindFirstChildWhichIsA("BasePart")
-
-    if not (handle and real_handle) then accessory:Destroy(); continue end
-
-    handle.Transparency = 1
-
-    net_functions.part_tweaks(real_handle)
-
-    local accessory_weld: Weld = real_handle:FindFirstChildWhichIsA("Weld")
-
-    if accessory_weld then accessory_weld:Destroy() end
-
-    rs_connections[#rs_connections+1],rs_connections[#rs_connections+2] =
-    net_functions.stabilize(
-        real_handle,
-        handle,
-        _hum,
-        {
-            st_vel = settings["St Velocity"],
-            dv_debounde = settings["Dv Debounce"],
-            dv_amplifier = settings["Dv Amplifier"],
-            rv_amplifier = settings["Rv Amplifier"],
-            dynamic_vel = settings["Dynamic Velocity"],
-            calc_rotvel = settings["Calculate RotVelocity"]
-        }
-    )
-
-    local special_mesh: SpecialMesh = handle:FindFirstChildWhichIsA("SpecialMesh")
-
-    if special_mesh then special_mesh:Destroy() end --I just really wanna make sure that nothing errors.
-end
-
-for _, part in pairs(_char:GetChildren()) do
-    if not (part:IsA("BasePart") and char:FindFirstChild(part.Name)) then continue end
-
-    local real_part: BasePart = char[part.Name]
-
-    for _, motors in pairs(real_part:GetChildren()) do
-        if motors:IsA("Motor6D") and motors.Name ~= "Neck" then motors:Destroy() end
-    end
-
-    for _,inst in pairs(part:GetChildren()) do
-        if inst:IsA("Texture") or inst:IsA("Decal") then inst.Transparency = 1 end
-    end
-
-    net_functions.part_tweaks(real_part)
-
-    rs_connections[#rs_connections+1],rs_connections[#rs_connections+2] =
-    net_functions.stabilize(
-        real_part,
-        part,
-        _hum,
-        {
-            st_vel = settings["St Velocity"],
-            dv_debounde = settings["Dv Debounce"],
-            dv_amplifier = settings["Dv Amplifier"],
-            rv_amplifier = settings["Rv Amplifier"],
-            dynamic_vel = settings["Dynamic Velocity"],
-            calc_rotvel = settings["Calculate RotVelocity"]
-        }
-    )
-
-    part.Transparency = 1
-end
+net_functions.set_hum_state(hum) --Disabled any other humanoid state, and only keeps Physical state.(It is used for limbs collision)
 
 starter_gui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 
