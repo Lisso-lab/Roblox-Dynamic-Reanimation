@@ -26,6 +26,7 @@ local settings = {
     ["Calculate RotVelocity"] = true, --[[Calculate RotVelocity: If RotVelocity is used correctly, it can
         Help with maintaining ownership, with no visual displeasures.(no jitter)
     ]]
+    ["Move Hats Head"] = false, --Move Hats Head: Hats on head will or will not move as if head didn't have neck.
     ["Jump Velocity"] = true, --Jump Velocity: Adds jumping velocity to Velocity. Recommended
     ["Dummy Noclip"] = true,  --Dummy Noclip: makes you noclipped WHILE being reanimated.
     ["St Velocity"] = Vector3.new(0,50,0), --Stationary Velocity: Velocity when no movement.
@@ -47,12 +48,11 @@ local function reset_func()
         rs_connections[i]:Disconnect()
     end --Disconnects all connections
 
-    plr.Character  = char
-
-    char:BreakJoints()
-    _char:BreakJoints()
+    char:BreakJoints(); _char:BreakJoints()
 
     bindable_event:Destroy()
+
+    char:Destroy(); _char:Destroy()
 
     starter_gui:SetCore("ResetButtonCallback", true)
 end
@@ -66,7 +66,15 @@ local function process_pats(inst) --BasePart | Accessory doesnt work smh
     end
 
     for _, desc in pairs(real_inst:GetChildren()) do
-        if desc:IsA("Motor6D") and desc.Name ~= "Neck" or desc:IsA("Weld") then desc:Destroy() end
+        if desc:IsA("Motor6D") and desc.Name ~= "Neck" then desc:Destroy() end
+
+        if not desc:IsA("Weld") then continue end
+
+        if settings["Move Hats Head"] then 
+            desc:Destroy()
+        else
+            if not string.lower(desc.Part1.Name) == "head" then desc:Destroy() end
+        end
     end
 
     for _, desc in pairs(inst:GetChildren()) do
@@ -74,8 +82,6 @@ local function process_pats(inst) --BasePart | Accessory doesnt work smh
     end
 
     inst.Transparency = 1
-
-    print(inst)
 
     net_functions.part_tweaks(real_inst)
 
@@ -128,6 +134,8 @@ _char.Parent = workspace
 
 _hum = _char:FindFirstChildWhichIsA("Humanoid")
 
+hum:ChangeState(Enum.HumanoidStateType.Physics)
+
 for _, inst in pairs(_char:GetChildren()) do
     if inst:IsA("BasePart") or inst:IsA("Accessory") then process_pats(inst) end
 end
@@ -140,12 +148,11 @@ do local animate: LocalScript = char:FindFirstChild("Animate")
     if animate and animate:IsA("LocalScript") then animate.Disabled = true end
 end --Disabled Animate LocalScript and disables animations real character is playing.
 
-net_functions.set_hum_state(hum) --Disabled any other humanoid state, and only keeps Physical state.(It is used for limbs collision)
-
 starter_gui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 
-char.Parent = workspace.CurrentCamera
 plr.Character = _char
+
+char.Parent = workspace.CurrentCamera
 
 starter_gui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, true)
 
