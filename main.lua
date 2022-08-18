@@ -48,6 +48,8 @@ local function reset_func()
         rs_connections[i]:Disconnect()
     end --Disconnects all connections
 
+    plr.Character = char
+
     char:BreakJoints(); _char:BreakJoints()
 
     bindable_event:Destroy()
