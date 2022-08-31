@@ -1,56 +1,80 @@
 --!strict
-local run_service: RunService = game:GetService("RunService")
-local starter_gui: StarterGui = game:GetService("StarterGui")
-
-local plr: Player = game:GetService("Players").LocalPlayer
-
-local char, _char: Model = plr.character or workspace[plr.Name]
-local hum, _hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
-
-local bindable_event: BindableEvent --Used for hooking reset button.
-local r_func_disconnecting: boolean = false
-local debounce_tick: number = 0
-
-local rs_connections = {} --RunService connections.
+--[[Project GAY!!!!!! Project GAY!!!! The most gayest reanimation!!!!]]
 
 local settings = {
-    ["Legacy Net"] = true, --[[Legacy net: Setting Simulation radius to massive number.
-        While simulation radius gets locked to 1k on server, setting high number has >possible< local improvements.
+    ["Method"] = "simple", --[[Options: <simple, perma>
+        permanent death (perma): Puts your character into undead state.
+        Makes head movement possible.
+        simple: Player stays alive, really simple pretty much.
     ]]
-    ["Physics Tweaks"] = true, --[[Physics Tweaks: Various game Physics tweaks
-        Such as disabling NetworkSleeping, etc. Recommended to use, but the option is here :)
+    ["Headless"] = false, --Only woks with Permanent death, removes head.
+    ["Move Head Hats"] = true, --[[This option only works in simple method.
+        If set to true, hats which are on your head will move with fake characters
+        head.
     ]]
-    ["Dynamic Velocity"] = true, --[[Dynamic Velocity: Applies velocity in the direction you are moving
-        to eliminate Jittering.
+    ["Keep Animations"] = false, --[[Option to set to keep default roblox animations
+        after reanimation. Some scripts don't disable Animate, so this is generally
+        good thing to have as an option.
     ]]
-    ["Calculate RotVelocity"] = true, --[[Calculate RotVelocity: If RotVelocity is used correctly, it can
-        Help with maintaining ownership, with no visual displeasures.(no jitter)
+
+    ["Static Velocity"] = Vector3.new(0,50,0), --[[Velocity used when not moving, or
+        when dynamic velocity is disabled.
     ]]
-    ["Move Hats Head"] = false, --Move Hats Head: Hats on head will or will not move as if head didn't have neck.
-    ["Jump Velocity"] = true, --Jump Velocity: Adds jumping velocity to Velocity. Recommended
-    ["Dummy Noclip"] = true,  --Dummy Noclip: makes you noclipped WHILE being reanimated.
-    ["St Velocity"] = Vector3.new(0,50,0), --Stationary Velocity: Velocity when no movement.
-    ["Dv Amplifier"] = 50,   --Dynamic Velocity amplifier: multiplies dynamic velocity. ?
-    ["Dv Debounce"] = .05,   --Dynamic Velocity Debounce. Does dynamic velocity overtime until Tick() - Debounce > this.
-    ["Rv Amplifier"] = 5     --RotVelocity Amplifier: multiplies Rotational Velocity
+    ["Dynamic Velocity"] = true, --[[Dynamic velocity works as follows:
+        Take MoveDirection of player and multiply it by desired amount.
+    ]]
+    ["Rot Velocity"] = true, --Rotational Velocity is actually pretty good!
+    ["Jump Velocity"] = true, --Applies velocity of jumping on real character from the fake one.
+
+    ["Dv Multiplier"] = 50, --Dv stands for Dynamic Velocity. The amount dv is applied by
+    ["Rv Multiplier"] = 5, --The amount RotVelocity is multiplied by. Small amount recommended.
+
+    ["DV Debounce"] = .05, --[[Quickly switching between moving and standing still
+        worsens stability, this tries to minigate it.
+    ]]
+
+    ["Legacy Net"] = true, --[[Legacy net used in first generation of reanimations
+        Sets SimulationRadius to massive number for big simulation radius,
+        now server locked into 1000 maximum.
+    ]]
+    ["Physics Tweaks"] = true, --[[Various physics tweaks which should improve
+        netowrk ownership of parts
+    ]]
+
+    ["Fake Char Noclip"] = true --Disable collisions on fake character...
 }
 
+--Project GAY ultimatum settings done!!! -- GAY defining start!!!--
+
+local starter_gui: StarterGui = game:GetService("StarterGui")
+local plrs: Players = game:GetService("Players")
+
+local plr: Player = plrs.LocalPlayer
+
+local char: Model = plr.Character or workspace[plr.Name]
+local hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
+
+local _char: Model    --Fake character
+local _hum:  Humanoid --Fake humanoid
+
+local reset_function_init: boolean = false
+local bindable_event: BindableEvent --Used to hook reset button
+
 local net_functions = loadstring(game:HttpGet("https://raw.githubusercontent.com/Lisso-lab/NetModule/main/main.lua"))()
+local rs_connections = {}
 
---Defining done.
---Functions start.
+--GAY defining done!!! -- GAY function start!!!--
 
-local function reset_func()
-    if r_func_disconnecting then return end
-    r_func_disconnecting = true
+local function reset()
+    if reset_function_init then return end
+    reset_function_init = true
 
     for i=1,#rs_connections do
         rs_connections[i]:Disconnect()
-    end --Disconnects all connections
+    end
 
-    plr.Character = char
-
-    char:BreakJoints(); _char:BreakJoints()
+    plr.Character = char; char:BreakJoints()
+    _char:BreakJoints()
 
     bindable_event:Destroy()
 
@@ -59,122 +83,173 @@ local function reset_func()
     starter_gui:SetCore("ResetButtonCallback", true)
 end
 
-local function process_pats(inst) --BasePart | Accessory doesnt work smh
-    local real_inst = char[inst.Name] --BasePart | Accessory doesnt work smh
+local function process_p(inst: Instance) --r will stand for real.
+    local r_inst = char[inst.Name]
 
     if inst:IsA("Accessory") then
         inst = inst:FindFirstChildWhichIsA("BasePart")
-        real_inst = real_inst:FindFirstChildWhichIsA("BasePart")
+        r_inst = r_inst:FindFirstChildWhichIsA("BasePart")
     end
 
-    for _, desc in pairs(real_inst:GetChildren()) do
-        if desc:IsA("Motor6D") and desc.Name ~= "Neck" then desc:Destroy() end
+    for _, child in pairs(r_inst:GetChildren()) do
+        if child:IsA("Motor6D") and child.Name ~= "Neck" then child:Destroy() end
 
-        if not desc:IsA("Weld") then continue end
+        if not child:IsA("Weld") then continue end
 
-        if settings["Move Hats Head"] then 
-            desc:Destroy()
+        if settings["Move Head Hats"] then
+            child:Destroy()
         else
-            if not string.lower(desc.Part1.Name) == "head" then desc:Destroy() end
+            if child.Part1.Name == "Head" then
+                if settings["Method"] == "perma" then print("It removes"); child:Destroy() end
+            else
+                child:Destroy()
+            end
         end
-    end
-
-    for _, desc in pairs(inst:GetChildren()) do
-        if desc:IsA("Texture") or desc:IsA("Decal") then desc.Transparency = 1 end
     end
 
     inst.Transparency = 1
+    for _, child in pairs(inst:GetChildren()) do
+        if child:IsA("Texture") or child:IsA("Decal") then child.Transparency = 1 end
+    end
 
-    net_functions.part_tweaks(real_inst)
+    if settings["Permanent Death"] then
+        net_functions.part_tweaks(r_inst, nil, {
+            density = 0,
+            friction = 0,
+            friction_weight = 0
+        }) --Having customphysi... Set all to 0 makes perma more stable for some reason...
+    else
+        net_functions.part_tweaks(r_inst)
+    end
 
-    rs_connections[#rs_connections+1],rs_connections[#rs_connections+2] =
-    net_functions.stabilize(
-        real_inst,
-        inst,
-        _hum,
-        {
-            st_vel = settings["St Velocity"],
-            dv_debounde = settings["Dv Debounce"],
-            dv_amplifier = settings["Dv Amplifier"],
-            rv_amplifier = settings["Rv Amplifier"],
-            dynamic_vel = settings["Dynamic Velocity"],
-            calc_rotvel = settings["Calculate RotVelocity"]
-        }
-    )
+    if settings["Method"] == "perma" and inst.Name == "Head" then
+        rs_connections[#rs_connections+1], rs_connections[#rs_connections+2] =
+        net_functions.stabilize(
+            r_inst, --what part
+            inst, --to what part
+            _hum,
+            settings["Jump Velocity"] and _char or nil, {calc_rotvel = false, apply_vel  = false}
+        )
+    else
+        rs_connections[#rs_connections+1], rs_connections[#rs_connections+2] =
+        net_functions.stabilize(
+            r_inst, --what part
+            inst, --to what part
+            _hum,
+            settings["Jump Velocity"] and _char or nil, {
+                st_vel =       settings["St Velocity"],
+                dv_debounde =  settings["Dv Debounce"],
+                dv_amplifier = settings["Dv Multiplier"],
+                rv_amplifier = settings["Rv Multiplier"],
+                dynamic_vel =  settings["Dynamic Velocity"],
+                calc_rotvel =  settings["Rot Velocity"]
+            }
+        )
+    end
 end
 
---Functions done.
---Real coding start.
+--GAY functions done -- GAY real coding start--
 
 if settings["Physics Tweaks"] then net_functions.physics_tweaks(hum) end
 
-char.Archivable = true --Character can"t be cloned otherwise.
+char.Archivable = true
 
-for _, inst in pairs(char:GetDescendants()) do
-    if inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("CharacterMesh") or
-       inst:IsA("SpecialMesh") or inst:IsA("ForceField") then
-        inst.Archivable = false
+for _, x in pairs(char:GetDescendants()) do --x is just for shortness
+    if x:IsA("Shirt") or x:IsA("Pants") or x:IsA("CharacterMesh") or
+       x:IsA("SpecialMesh") or x:IsA("ForceField")
+    then
+        x.Archivable = false
     end
 end
 
-do local hat_names = {}
+do local acc_names = {} --Accesory names
+    for _, acc in pairs(hum:GetAccessories()) do
+        local tabl = acc_names[acc.Name]
 
-    for _,accessory in pairs(hum:GetAccessories()) do
-        if hat_names[accessory.Name] then
-            hat_names[accessory.Name][#hat_names[accessory.Name] + 1] = true
+        if tabl then
+            tabl[#tabl+1] = "PROJECT GAY"
 
-            accessory.Name = accessory.Name .. #hat_names[accessory.Name]
+            acc.Name = acc.Name .. #tabl
         else
-            hat_names[accessory.Name] = {}
+            acc_names[acc.Name] = {}
         end
     end
-end --hat renaming function in lua numbers. <hat, hat1, hat2>
+end --Renames hats in lua style: hat, hat1, hat2, hat3
 
-_char = char:Clone() --Clones real character, and makes Dummy.
-_char:MoveTo(char:FindFirstChildWhichIsA("BasePart").Position)
+_char = char:Clone()
 _char.Parent = workspace
+_char.Name = "_" .. char.Name
 
 _hum = _char:FindFirstChildWhichIsA("Humanoid")
 
 hum:ChangeState(Enum.HumanoidStateType.Physics)
-
-for _, inst in pairs(_char:GetChildren()) do
-    if inst:IsA("BasePart") or inst:IsA("Accessory") then process_pats(inst) end
-end
-
-for _,animation_track in pairs(hum:GetPlayingAnimationTracks()) do
-    animation_track:Stop()
+for _, anim_tracks in pairs(hum:GetPlayingAnimationTracks()) do
+    anim_tracks:Stop()
 end
 
 do local animate: LocalScript = char:FindFirstChild("Animate")
-    if animate and animate:IsA("LocalScript") then animate.Disabled = true end
-end --Disabled Animate LocalScript and disables animations real character is playing.
+    if animate then animate.Disabled = true end
+end
+
+if settings["Keep Animations"] then
+    local animate: LocalScript = char:FindFirstChild("Animate")
+
+    if animate then
+        coroutine.wrap(function()
+            animate.Disabled = true; task.wait(.2); animate.Disabled = false
+        end)()
+    end
+end
+
+--GAY real coding done!!! -- GAY finalizing start!!!--
 
 starter_gui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 
-plr.Character = _char
+local prev_grav = workspace.Gravity
+workspace.Gravity = 50
 
-char.Parent = workspace.CurrentCamera
+char:MoveTo(char.PrimaryPart.Position + Vector3.new(0,10,0))
+task.wait(.2)
+_char:MoveTo(char.PrimaryPart.Position)
+
+rs_connections[#rs_connections + 1] = net_functions.disable_collisions_model(char)
+
+for _, child in pairs(_char:GetChildren()) do
+    if child:IsA("BasePart") or child:IsA("Accessory") then process_p(child) end
+end
+task.wait(.2)
+
+if settings["Method"] == "perma" then
+    char.Parent = _char
+
+    coroutine.wrap(function()
+        plr.Character = nil; plr.Character = _char
+
+        task.wait(plrs.RespawnTime + .2)
+
+        for _, child in pairs(char:GetDescendants()) do
+            if child:IsA("Motor6D") and child.Name == "Neck" then child:Destroy() end
+        end
+
+        char.Parent = workspace
+    end)()
+else
+    plr.Character = _char
+end
 
 starter_gui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, true)
 
 workspace.CurrentCamera.CameraSubject = _hum
+workspace.Gravity = prev_grav
 
-bindable_event = Instance.new("BindableEvent")
-bindable_event.Event:Connect(reset_func)
-
---Real coding end.
---RBXConnections
-
+bindable_event = Instance.new("BindableEvent"); bindable_event.Event:Connect(reset)
 starter_gui:SetCore("ResetButtonCallback", bindable_event)
 
-if settings["Legacy Net"] then 
-    rs_connections[#rs_connections + 1] = net_functions.sim_rad(plr)
-end
-if settings["Dummy Noclip"] then
-    rs_connections[#rs_connections + 1] = net_functions.disable_collisions_model(_char)
-end
+--GAY finalizing done!!! -- GAY connecting starting!!!--
 
-rs_connections[#rs_connections + 1] = net_functions.disable_collisions_model(char)
-rs_connections[#rs_connections + 1] = plr.CharacterRemoving:Connect(reset_func)
-rs_connections[#rs_connections + 1] = _hum.Died:Connect(reset_func)
+if settings["Legacy Net"] then rs_connections[#rs_connections+1] = net_functions.sim_rad(plr) end
+if settings["Fake Char Noclip"] then rs_connections[#rs_connections+1] = net_functions.disable_collisions_model(_char) end
+
+rs_connections[#rs_connections + 1] = plr.CharacterRemoving:Connect(reset)
+
+--Done! Project GAY by Iss0, Iss0#2367 or SkiuulLPcz
