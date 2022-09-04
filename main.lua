@@ -2,11 +2,11 @@
 --[[Project GAY!!!!!! Project GAY!!!! The most gayest reanimation!!!!]]
 
 local settings = {
-    ["Stabilize Method"] = "position", --[[Options: <position, cframe>
+    ["Stabilize Method"] = "cframe", --[[Options: <position, cframe>
         position works muuch better with permanent death, but
         it breaks head in simple method.
     ]]
-    ["Reanim Method"] = "simple", --[[Options: <simple, perma>
+    ["Reanim Method"] = "perma", --[[Options: <simple, perma>
         permanent death (perma): Puts your character into undead state.
         Makes head movement possible.
         simple: Player stays alive, really simple pretty much.
@@ -125,35 +125,21 @@ local function process_p(inst: Instance) --r will stand for real.
         net_functions.part_tweaks(r_inst)
     end
 
-    if settings["Reanim Method"] == "perma" and inst.Name == "Head" then
-        rs_connections[#rs_connections+1], rs_connections[#rs_connections+2] =
-        net_functions.stabilize(
-            r_inst, --what part
-            inst, --to what part
-            _hum,
-            settings["Jump Velocity"] and _char or nil, {
-                stabilize_method = settings["Stabilize Method"],
-                calc_rotvel = false,
-                apply_vel  = false
-            }
-        )
-    else
-        rs_connections[#rs_connections+1], rs_connections[#rs_connections+2] =
-        net_functions.stabilize(
-            r_inst, --what part
-            inst, --to what part
-            _hum,
-            settings["Jump Velocity"] and _char or nil, {
-                st_vel =       settings["St Velocity"],
-                dv_amplifier = settings["Dv Multiplier"],
-                dv_debounde =  settings["Dv Debounce"],
-                rv_amplifier = settings["Rv Multiplier"],
-                dynamic_vel =  settings["Dynamic Velocity"],
-                calc_rotvel =  settings["Rot Velocity"],
-                stabilize_method = settings["Stabilize Method"]
-            }
-        )
-    end
+    rs_connections[#rs_connections+1], rs_connections[#rs_connections+2] =
+    net_functions.stabilize(
+        r_inst, --what part
+        inst, --to what part
+        _hum,
+        settings["Jump Velocity"] and _char or nil, {
+            st_vel =       settings["St Velocity"],
+            dv_amplifier = settings["Dv Multiplier"],
+            dv_debounde =  settings["Dv Debounce"],
+            rv_amplifier = settings["Rv Multiplier"],
+            dynamic_vel =  settings["Dynamic Velocity"],
+            calc_rotvel =  settings["Rot Velocity"],
+            stabilize_method = settings["Stabilize Method"]
+        }
+    )
 end
 
 --GAY functions done -- GAY real coding start--
