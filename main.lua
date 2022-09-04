@@ -2,7 +2,11 @@
 --[[Project GAY!!!!!! Project GAY!!!! The most gayest reanimation!!!!]]
 
 local settings = {
-    ["Method"] = "simple", --[[Options: <simple, perma>
+    ["Stabilize Method"] = "position", --[[Options: <position, cframe>
+        position works muuch better with permanent death, but
+        it breaks head in simple method.
+    ]]
+    ["Reanim Method"] = "simple", --[[Options: <simple, perma>
         permanent death (perma): Puts your character into undead state.
         Makes head movement possible.
         simple: Player stays alive, really simple pretty much.
@@ -20,19 +24,17 @@ local settings = {
     ["Static Velocity"] = Vector3.new(0,50,0), --[[Velocity used when not moving, or
         when dynamic velocity is disabled.
     ]]
-    ["Dynamic Velocity"] = true, --[[Dynamic velocity works as follows:
-        Take MoveDirection of player and multiply it by desired amount.
-    ]]
-    ["Rot Velocity"] = true, --Rotational Velocity is actually pretty good!
-    ["Jump Velocity"] = true, --Applies velocity of jumping on real character from the fake one.
-
+    ["Dynamic Velocity"] = true, --Dynamic velocity works as follows: MoveDirection * multiplier
     ["Dv Multiplier"] = 50, --Dv stands for Dynamic Velocity. The amount dv is applied by
+
+    ["Rot Velocity"] = true, --Rotational Velocity is actually pretty good!
     ["Rv Multiplier"] = 5, --The amount RotVelocity is multiplied by. Small amount recommended.
+
+    ["Jump Velocity"] = true, --Applies velocity of jumping on real character from the fake one.
 
     ["DV Debounce"] = .05, --[[Quickly switching between moving and standing still
         worsens stability, this tries to minigate it.
     ]]
-
     ["Legacy Net"] = true, --[[Legacy net used in first generation of reanimations
         Sets SimulationRadius to massive number for big simulation radius,
         now server locked into 1000 maximum.
@@ -40,7 +42,6 @@ local settings = {
     ["Physics Tweaks"] = true, --[[Various physics tweaks which should improve
         netowrk ownership of parts
     ]]
-
     ["Fake Char Noclip"] = true --Disable collisions on fake character...
 }
 
@@ -81,6 +82,8 @@ local function reset()
     char:Destroy(); _char:Destroy()
 
     starter_gui:SetCore("ResetButtonCallback", true)
+
+    print("Succesfully disabled all connections, reset.")
 end
 
 local function process_p(inst: Instance) --r will stand for real.
@@ -100,7 +103,7 @@ local function process_p(inst: Instance) --r will stand for real.
             child:Destroy()
         else
             if child.Part1.Name == "Head" then
-                if settings["Method"] == "perma" then print("It removes"); child:Destroy() end
+                if settings["Reanim Method"] == "perma" then child:Destroy() end
             else
                 child:Destroy()
             end
@@ -122,13 +125,17 @@ local function process_p(inst: Instance) --r will stand for real.
         net_functions.part_tweaks(r_inst)
     end
 
-    if settings["Method"] == "perma" and inst.Name == "Head" then
+    if settings["Reanim Method"] == "perma" and inst.Name == "Head" then
         rs_connections[#rs_connections+1], rs_connections[#rs_connections+2] =
         net_functions.stabilize(
             r_inst, --what part
             inst, --to what part
             _hum,
-            settings["Jump Velocity"] and _char or nil, {calc_rotvel = false, apply_vel  = false}
+            settings["Jump Velocity"] and _char or nil, {
+                stabilize_method = settings["Stabilize Method"],
+                calc_rotvel = false,
+                apply_vel  = false
+            }
         )
     else
         rs_connections[#rs_connections+1], rs_connections[#rs_connections+2] =
@@ -138,11 +145,12 @@ local function process_p(inst: Instance) --r will stand for real.
             _hum,
             settings["Jump Velocity"] and _char or nil, {
                 st_vel =       settings["St Velocity"],
-                dv_debounde =  settings["Dv Debounce"],
                 dv_amplifier = settings["Dv Multiplier"],
+                dv_debounde =  settings["Dv Debounce"],
                 rv_amplifier = settings["Rv Multiplier"],
                 dynamic_vel =  settings["Dynamic Velocity"],
-                calc_rotvel =  settings["Rot Velocity"]
+                calc_rotvel =  settings["Rot Velocity"],
+                stabilize_method = settings["Stabilize Method"]
             }
         )
     end
@@ -209,8 +217,9 @@ local prev_grav = workspace.Gravity
 workspace.Gravity = 50
 
 char:MoveTo(char.PrimaryPart.Position + Vector3.new(0,10,0))
-task.wait(.2)
+task.wait(.1)
 _char:MoveTo(char.PrimaryPart.Position)
+task.wait(.2)
 
 rs_connections[#rs_connections + 1] = net_functions.disable_collisions_model(char)
 
@@ -219,7 +228,7 @@ for _, child in pairs(_char:GetChildren()) do
 end
 task.wait(.2)
 
-if settings["Method"] == "perma" then
+if settings["Reanim Method"] == "perma" then
     char.Parent = _char
 
     coroutine.wrap(function()
