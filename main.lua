@@ -2,7 +2,7 @@
 --[[Project GAY!!!!!! Project GAY!!!! The most gayest reanimation!!!!]]
 
 local settings = {
-    ["Stabilize Method"] = "cframe", --[[Options: <position, cframe>
+    ["Stabilize Method"] = "position", --[[Options: <position, cframe>
         position works muuch better with permanent death, but
         it breaks head in simple method.
     ]]
@@ -12,20 +12,22 @@ local settings = {
         simple: Player stays alive, really simple pretty much.
     ]]
     ["Headless"] = false, --Only woks with Permanent death, removes head.
-    ["Move Head Hats"] = true, --[[This option only works in simple method.
+
+    ["Hide Health"] = true, --Attempts to hide permanent death health bar.
+    ["Head Offset"] = Vector3.new(0,150,0), --How far head gets teleported to hide health bar.
+    ["Hh Delay"] = 15, --Hide health Delay: In seconds how quickly teleporting is repeated.
+    ["Hh Span"] = .02, --[[Span for how long head gets teleported to offset.
+        Note: Only change if you know what you are doing.
+    ]]
+    ["Move Head Hats"] = false, --[[This option only works in simple method.
         If set to true, hats which are on your head will move with fake characters
         head.
     ]]
-    ["Keep Animations"] = false, --[[Option to set to keep default roblox animations
-        after reanimation. Some scripts don't disable Animate, so this is generally
-        good thing to have as an option.
-    ]]
-
-    ["Static Velocity"] = Vector3.new(0,50,0), --[[Velocity used when not moving, or
+    ["Static Velocity"] = Vector3.new(0,14000,0), --[[Velocity used when not moving, or
         when dynamic velocity is disabled.
     ]]
     ["Dynamic Velocity"] = true, --Dynamic velocity works as follows: MoveDirection * multiplier
-    ["Dv Multiplier"] = 50, --Dv stands for Dynamic Velocity. The amount dv is applied by
+    ["Dv Multiplier"] = 500, --Dv stands for Dynamic Velocity. The amount dv is applied by
 
     ["Rot Velocity"] = true, --Rotational Velocity is actually pretty good!
     ["Rv Multiplier"] = 5, --The amount RotVelocity is multiplied by. Small amount recommended.
@@ -47,16 +49,14 @@ local settings = {
 
 --Project GAY ultimatum settings done!!! -- GAY defining start!!!--
 
+local run_service: RunService = game:GetService("RunService")
 local starter_gui: StarterGui = game:GetService("StarterGui")
 local plrs: Players = game:GetService("Players")
 
 local plr: Player = plrs.LocalPlayer
 
-local char: Model = plr.Character or workspace[plr.Name]
-local hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
-
-local _char: Model    --Fake character
-local _hum:  Humanoid --Fake humanoid
+local char,_char: Model = plr.Character or workspace[plr.Name]
+local hum, _hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
 
 local reset_function_init: boolean = false
 local bindable_event: BindableEvent --Used to hook reset button
@@ -102,10 +102,10 @@ local function process_p(inst: Instance) --r will stand for real.
         if settings["Move Head Hats"] then
             child:Destroy()
         else
-            if child.Part1.Name == "Head" then
-                if settings["Reanim Method"] == "perma" then child:Destroy() end
-            else
+            if settings["Reanim Method"] == "perma" then
                 child:Destroy()
+            else
+                if child.Part1.Name ~= "Head" then child:Destroy() end
             end
         end
     end
@@ -115,12 +115,80 @@ local function process_p(inst: Instance) --r will stand for real.
         if child:IsA("Texture") or child:IsA("Decal") then child.Transparency = 1 end
     end
 
-    if settings["Permanent Death"] then
+    if settings["Reanim Method"] == "perma" then
         net_functions.part_tweaks(r_inst, nil, {
             density = 0,
             friction = 0,
             friction_weight = 0
         }) --Having customphysi... Set all to 0 makes perma more stable for some reason...
+
+        if r_inst.Name == "Head" then
+            if settings["Hide Health"] and not settings["Headless"] then
+                rs_connections[#rs_connections+1] =
+                net_functions.radless(
+                    r_inst,
+                    inst,
+                    settings["Dynamic Velocity"] and _hum or nil,
+                    settings["Jump Velocity"] and _char or nil, {
+                        st_vel =       settings["Static Velocity"],
+                        dv_multiplier= settings["Dv Multiplier"],
+                        dv_debounce =  settings["Dv Debounce"],
+                        rv_multiplier= settings["Rv Multiplier"]
+                    }
+                )
+
+                local delay: number = tick() + settings["Hh Delay"]
+                local span: number = delay + settings["Hh Span"]
+                local pos: Vector3 = inst.Position + settings["Head Offset"]
+
+                rs_connections[#rs_connections+1] =
+                run_service["RenderStepped"]:Connect(function()
+                    if delay < tick() then
+                        r_inst.Position = pos
+
+                        r_inst.AssemblyLinearVelocity = Vector3.zero
+                        r_inst.RotVelocity = Vector3.zero
+
+                        if tick() > span then
+                            delay = tick() + settings["Hh Delay"]
+                            span = delay + settings["Hh Span"]
+                            pos = inst.Position + settings["Head Offset"]
+                        end
+                    else
+                        if settings["Stabilize Method"] == "position" then
+                            r_inst.Position = inst.Position
+                            r_inst.Orientation = inst.Orientation
+                        else
+                            r_inst.CFrame = inst.CFrame
+                        end
+                    end
+                end)
+
+                rs_connections[#rs_connections+1] =
+                run_service["Heartbeat"]:Connect(function()
+                    if delay < tick() then
+                        r_inst.Position = pos
+
+                        if tick() > span then
+                            delay = tick() + settings["Hh Delay"]
+                            span = delay + settings["Hh Span"]
+                            pos = inst.Position + settings["Head Offset"]
+                        end
+                    else
+                        if settings["Stabilize Method"] == "position" then
+                            r_inst.Position = inst.Position
+                            r_inst.Orientation = inst.Orientation
+                        else
+                            r_inst.CFrame = inst.CFrame
+                        end
+                    end
+                end)
+
+                print("Attempting to hide healh.")
+
+                return
+            end
+        end
     else
         net_functions.part_tweaks(r_inst)
     end
@@ -129,17 +197,18 @@ local function process_p(inst: Instance) --r will stand for real.
     net_functions.stabilize(
         r_inst, --what part
         inst, --to what part
-        _hum,
+        settings["Dynamic Velocity"] and _hum or nil,
         settings["Jump Velocity"] and _char or nil, {
-            st_vel =       settings["St Velocity"],
-            dv_amplifier = settings["Dv Multiplier"],
-            dv_debounde =  settings["Dv Debounce"],
-            rv_amplifier = settings["Rv Multiplier"],
-            dynamic_vel =  settings["Dynamic Velocity"],
+            st_vel =       settings["Static Velocity"],
+            dv_multiplier= settings["Dv Multiplier"],
+            dv_debounce =  settings["Dv Debounce"],
+            rv_multiplier= settings["Rv Multiplier"],
             calc_rotvel =  settings["Rot Velocity"],
             stabilize_method = settings["Stabilize Method"]
         }
     )
+
+    print("Stabilized: " ..inst.Name ..".")
 end
 
 --GAY functions done -- GAY real coding start--
@@ -185,34 +254,32 @@ do local animate: LocalScript = char:FindFirstChild("Animate")
     if animate then animate.Disabled = true end
 end
 
-if settings["Keep Animations"] then
-    local animate: LocalScript = char:FindFirstChild("Animate")
+do
+    local animate: LocalScript = _char:FindFirstChild("Animate")
 
-    if animate then
-        coroutine.wrap(function()
-            animate.Disabled = true; task.wait(.2); animate.Disabled = false
-        end)()
-    end
+    if animate then animate.Disabled = true end
 end
 
 --GAY real coding done!!! -- GAY finalizing start!!!--
+
+rs_connections[#rs_connections + 1] = net_functions.l_collision_disable_model(char)
 
 starter_gui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 
 local prev_grav = workspace.Gravity
 workspace.Gravity = 50
 
-char:MoveTo(char.PrimaryPart.Position + Vector3.new(0,10,0))
+char:MoveTo(char.PrimaryPart.Position + Vector3.new(0,50,0))
 task.wait(.1)
 _char:MoveTo(char.PrimaryPart.Position)
 task.wait(.2)
-
-rs_connections[#rs_connections + 1] = net_functions.disable_collisions_model(char)
 
 for _, child in pairs(_char:GetChildren()) do
     if child:IsA("BasePart") or child:IsA("Accessory") then process_p(child) end
 end
 task.wait(.2)
+
+plr.Character = _char
 
 if settings["Reanim Method"] == "perma" then
     char.Parent = _char
@@ -223,7 +290,11 @@ if settings["Reanim Method"] == "perma" then
         task.wait(plrs.RespawnTime + .2)
 
         for _, child in pairs(char:GetDescendants()) do
-            if child:IsA("Motor6D") and child.Name == "Neck" then child:Destroy() end
+            if child:IsA("Motor6D") and child.Name == "Neck" or
+               child.Name == "Head" and settings["Headless"]
+            then
+                child:Destroy()
+            end
         end
 
         char.Parent = workspace
@@ -243,8 +314,9 @@ starter_gui:SetCore("ResetButtonCallback", bindable_event)
 --GAY finalizing done!!! -- GAY connecting starting!!!--
 
 if settings["Legacy Net"] then rs_connections[#rs_connections+1] = net_functions.sim_rad(plr) end
-if settings["Fake Char Noclip"] then rs_connections[#rs_connections+1] = net_functions.disable_collisions_model(_char) end
+if settings["Fake Char Noclip"] then rs_connections[#rs_connections+1] = net_functions.l_collision_disable_model(_char) end
 
 rs_connections[#rs_connections + 1] = plr.CharacterRemoving:Connect(reset)
 
+print("Reanimated.")
 --Done! Project GAY by Iss0, Iss0#2367 or SkiuulLPcz
