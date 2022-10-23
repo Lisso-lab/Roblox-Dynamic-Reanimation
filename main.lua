@@ -1,53 +1,27 @@
---!strict
---[[Project GAY!!!!!! Project GAY!!!! The most gayest reanimation!!!!]]
-
-local settings = {
-    ["Stabilize Method"] = "position", --[[Options: <position, cframe>
-        position works muuch better with permanent death, but
-        it breaks head in simple method.
-    ]]
-    ["Reanim Method"] = "perma", --[[Options: <simple, perma>
-        permanent death (perma): Puts your character into undead state.
-        Makes head movement possible.
-        simple: Player stays alive, really simple pretty much.
-    ]]
-    ["Headless"] = false, --Only woks with Permanent death, removes head.
-
-    ["Hide Health"] = true, --Attempts to hide permanent death health bar.
-    ["Head Offset"] = Vector3.new(0,150,0), --How far head gets teleported to hide health bar.
-    ["Hh Delay"] = 15, --Hide health Delay: In seconds how quickly teleporting is repeated.
-    ["Hh Span"] = .02, --[[Span for how long head gets teleported to offset.
-        Note: Only change if you know what you are doing.
-    ]]
-    ["Move Head Hats"] = false, --[[This option only works in simple method.
-        If set to true, hats which are on your head will move with fake characters
-        head.
-    ]]
-    ["Static Velocity"] = Vector3.new(0,14000,0), --[[Velocity used when not moving, or
-        when dynamic velocity is disabled.
-    ]]
-    ["Dynamic Velocity"] = true, --Dynamic velocity works as follows: MoveDirection * multiplier
-    ["Dv Multiplier"] = 500, --Dv stands for Dynamic Velocity. The amount dv is applied by
-
-    ["Rot Velocity"] = true, --Rotational Velocity is actually pretty good!
-    ["Rv Multiplier"] = 5, --The amount RotVelocity is multiplied by. Small amount recommended.
-
-    ["Jump Velocity"] = true, --Applies velocity of jumping on real character from the fake one.
-
-    ["DV Debounce"] = .05, --[[Quickly switching between moving and standing still
-        worsens stability, this tries to minigate it.
-    ]]
-    ["Legacy Net"] = true, --[[Legacy net used in first generation of reanimations
-        Sets SimulationRadius to massive number for big simulation radius,
-        now server locked into 1000 maximum.
-    ]]
-    ["Physics Tweaks"] = true, --[[Various physics tweaks which should improve
-        netowrk ownership of parts
-    ]]
-    ["Fake Char Noclip"] = true --Disable collisions on fake character...
+local settings = getgenv().ReanimateSettings or {
+    ["Stabilize Method"] = "position", -- Options: <position, cframe>
+    ["Reanim Method"] = "simple", -- Options: <simple, perma>
+    ["Headless"] = false, -- Only woks with Permanent death, removes head.
+    
+    ["Hide Health"] = true, -- Attempts to hide permanent death health bar.
+    ["Head Offset"] = Vector3.new(0,150,0), -- How far head gets teleported to hide health bar.
+    ["Hh Delay"] = 15, -- Hide health Delay: In seconds how quickly teleporting is repeated.
+    ["Hh Span"] = .02, -- Span for how long head gets teleported to offset.
+    
+    ["Static Velocity"] = Vector3.new(0,14000,0), -- Velocity used when not moving, or when dynamic velocity is disabled.
+    ["Dynamic Velocity"] = true, -- Dynamic velocity works as follows: MoveDirection * multiplier
+    ["Dv Multiplier"] = 500, -- Dv stands for Dynamic Velocity. The amount dv is applied by
+    
+    ["Rot Velocity"] = true, -- Rotational Velocity is actually pretty good!
+    ["Rv Multiplier"] = 5, -- The amount RotVelocity is multiplied by. Small amount recommended.
+    
+    ["Jump Velocity"] = true, -- Applies velocity of jumping on real character from the fake one.
+    
+    ["DV Debounce"] = .05, -- Quickly switching between moving and standing still worsens stability, this tries to minigate it.
+    ["Legacy Net"] = true, -- Legacy net used in first generation of reanimations
+    ["Physics Tweaks"] = true, -- Various physics tweaks which should improve netowrk ownership of parts
+    ["Fake Char Noclip"] = true -- Disable collisions on fake character
 }
-
---Project GAY ultimatum settings done!!! -- GAY defining start!!!--
 
 local run_service: RunService = game:GetService("RunService")
 local starter_gui: StarterGui = game:GetService("StarterGui")
@@ -59,12 +33,10 @@ local char,_char: Model = plr.Character or workspace[plr.Name]
 local hum, _hum: Humanoid = char:FindFirstChildWhichIsA("Humanoid")
 
 local reset_function_init: boolean = false
-local bindable_event: BindableEvent --Used to hook reset button
+local bindable_event: BindableEvent
 
-local net_functions = loadstring(game:HttpGet("https://raw.githubusercontent.com/Lisso-lab/NetModule/main/main.lua"))()
+local net_functions = loadstring(game:HttpGet("https://raw.githubusercontent.com/0x580x540x43/Roblox-Dynamic-Reanimation/main/NetFunctions.lua"))()
 local rs_connections = {}
-
---GAY defining done!!! -- GAY function start!!!--
 
 local function reset()
     if reset_function_init then return end
@@ -86,7 +58,7 @@ local function reset()
     print("Succesfully disabled all connections, reset.")
 end
 
-local function process_p(inst: Instance) --r will stand for real.
+local function process_p(inst: Instance)
     local r_inst = char[inst.Name]
 
     if inst:IsA("Accessory") then
@@ -211,13 +183,11 @@ local function process_p(inst: Instance) --r will stand for real.
     print("Stabilized: " ..inst.Name ..".")
 end
 
---GAY functions done -- GAY real coding start--
-
 if settings["Physics Tweaks"] then net_functions.physics_tweaks(hum) end
 
 char.Archivable = true
 
-for _, x in pairs(char:GetDescendants()) do --x is just for shortness
+for _, x in pairs(char:GetDescendants()) do
     if x:IsA("Shirt") or x:IsA("Pants") or x:IsA("CharacterMesh") or
        x:IsA("SpecialMesh") or x:IsA("ForceField")
     then
@@ -259,8 +229,6 @@ do
 
     if animate then animate.Disabled = true end
 end
-
---GAY real coding done!!! -- GAY finalizing start!!!--
 
 rs_connections[#rs_connections + 1] = net_functions.l_collision_disable_model(char)
 
@@ -310,8 +278,6 @@ workspace.Gravity = prev_grav
 
 bindable_event = Instance.new("BindableEvent"); bindable_event.Event:Connect(reset)
 starter_gui:SetCore("ResetButtonCallback", bindable_event)
-
---GAY finalizing done!!! -- GAY connecting starting!!!--
 
 if settings["Legacy Net"] then rs_connections[#rs_connections+1] = net_functions.sim_rad(plr) end
 if settings["Fake Char Noclip"] then rs_connections[#rs_connections+1] = net_functions.l_collision_disable_model(_char) end
