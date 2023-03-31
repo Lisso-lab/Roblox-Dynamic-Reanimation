@@ -1,3 +1,5 @@
+# This project wont be worked on. I no longer work on reanimations.
+
 # Roblox dynamic reanimation
 Roblox reanimation bypass with dynamic velocity
 
